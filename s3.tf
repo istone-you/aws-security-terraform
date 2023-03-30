@@ -35,31 +35,116 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "AWSCloudTrailAclCheck20150319",
             "Effect": "Allow",
+            "Action": "s3:PutObject",
+            "Resource": "${aws_s3_bucket.security.arn}/*",
             "Principal": {
                 "Service": "cloudtrail.amazonaws.com"
-            },
+            }
+        },
+        {
+            "Effect": "Allow",
             "Action": "s3:GetBucketAcl",
-            "Resource": "arn:aws:s3:::${aws_s3_bucket.security.id}",
+            "Resource": "${aws_s3_bucket.security.arn}",
+            "Principal": {
+                "Service": "cloudtrail.amazonaws.com"
+            }
+        },
+        {
+            "Sid": "AWSConfig BucketPermissionsCheck and BucketExistenceCheck",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "config.amazonaws.com"
+            },
+            "Action": [
+                "s3:GetBucketAcl",
+                "s3:ListBucket"
+            ],
+            "Resource": "${aws_s3_bucket.security.arn}"
+        },
+        {
+            "Sid": "AWSConfigBucketDelivery",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "config.amazonaws.com"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "${aws_s3_bucket.security.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/Config/*",
             "Condition": {
                 "StringEquals": {
-                    "AWS:SourceArn": "${aws_cloudtrail.cloudtrail.arn}"
+                    "s3:x-amz-acl": "bucket-owner-full-control"
                 }
             }
         },
         {
-            "Sid": "AWSCloudTrailWrite20150319",
+            "Sid": "AllowGuardDutygetBucketLocation",
             "Effect": "Allow",
             "Principal": {
-                "Service": "cloudtrail.amazonaws.com"
+                "Service": "guardduty.amazonaws.com"
             },
-            "Action": "s3:PutObject",
-            "Resource": "arn:aws:s3:::${aws_s3_bucket.security.id}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
+            "Action": "s3:GetBucketLocation",
+            "Resource": "${aws_s3_bucket.security.arn}",
             "Condition": {
                 "StringEquals": {
-                    "AWS:SourceArn": "${aws_cloudtrail.cloudtrail.arn}",
-                    "s3:x-amz-acl": "bucket-owner-full-control"
+                    "aws:SourceAccount": "${data.aws_caller_identity.current.account_id}",
+                    "aws:SourceArn": "${aws_guardduty_detector.guardduty.arn}"
+
+                }
+            }
+        },
+        {
+            "Sid": "AllowGuardDutyPutObject",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "guardduty.amazonaws.com"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "${aws_s3_bucket.security.arn}/*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:SourceAccount": "${data.aws_caller_identity.current.account_id}",
+                    "aws:SourceArn": "${aws_guardduty_detector.guardduty.arn}"
+
+                }
+            }
+        },
+        {
+            "Sid": "DenyUnencryptedUploadsThis is optional",
+            "Effect": "Deny",
+            "Principal": {
+                "Service": "guardduty.amazonaws.com"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "${aws_s3_bucket.security.arn}/*",
+            "Condition": {
+                "StringNotEquals": {
+                    "s3:x-amz-server-side-encryption": "aws:kms"
+                }
+            }
+        },
+        {
+            "Sid": "DenyIncorrectHeaderThis is optional",
+            "Effect": "Deny",
+            "Principal": {
+                "Service": "guardduty.amazonaws.com"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "${aws_s3_bucket.security.arn}/*",
+            "Condition": {
+                "StringNotEquals": {
+                    "s3:x-amz-server-side-encryption-aws-kms-key-id": "${aws_kms_key.key_s3.arn}"
+                }
+            }
+        },
+        {
+            "Sid": "DenyNon-HTTPS",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "s3:*",
+            "Resource": "${aws_s3_bucket.security.arn}/*",
+            "Condition": {
+                "Bool": {
+                    "aws:SecureTransport": "false"
                 }
             }
         }

@@ -17,8 +17,12 @@ resource "aws_config_configuration_recorder_status" "awsconfig" {
 
 resource "aws_config_delivery_channel" "awsconfig" {
   name           = "awsconfig-${data.aws_caller_identity.current.account_id}"
-  s3_bucket_name = var.s3_bucket_name
-  depends_on     = [aws_config_configuration_recorder.awsconfig]
+  s3_bucket_name = aws_s3_bucket.security.id
+  depends_on     = [
+    aws_config_configuration_recorder.awsconfig,
+    aws_s3_bucket_policy.bucket_policy,
+    aws_kms_key.key_s3
+  ]
   snapshot_delivery_properties {
     delivery_frequency = "One_Hour"
   }

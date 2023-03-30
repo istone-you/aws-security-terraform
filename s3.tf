@@ -1,8 +1,8 @@
 resource "aws_s3_bucket" "security" {
-  bucket = "secutiry-${data.aws_caller_identity.current.account_id}"
+  bucket = "security-${data.aws_caller_identity.current.account_id}"
 
   tags = {
-    Name = "secutiry-${data.aws_caller_identity.current.account_id}"
+    Name = "security-${data.aws_caller_identity.current.account_id}"
   }
 }
 

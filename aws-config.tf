@@ -1,6 +1,6 @@
 resource "aws_config_configuration_recorder" "awsconfig" {
   name     = "config-recorder-${data.aws_caller_identity.current.account_id}"
-  role_arn = aws_iam_policy.config.arn
+  role_arn = "arn:aws:iam::763397213391:role/aws-service-role/config.amazonaws.com/AWSServiceRoleForConfig"
 
   recording_group {
     all_supported                 = true
@@ -17,7 +17,7 @@ resource "aws_config_configuration_recorder_status" "awsconfig" {
 
 resource "aws_config_delivery_channel" "awsconfig" {
   name           = "awsconfig-${data.aws_caller_identity.current.account_id}"
-  s3_bucket_name = aws_s3_bucket.security.id
+  s3_bucket_name = var.s3_bucket_name
   depends_on     = [aws_config_configuration_recorder.awsconfig]
   snapshot_delivery_properties {
     delivery_frequency = "One_Hour"
